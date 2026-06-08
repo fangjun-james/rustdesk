@@ -150,16 +150,11 @@ span.clear-input:hover {
 }
 
 .right-pane {
-    size: *;
-    background: color(gray-bg);
+   display: none;
 }
 
 .right-content {
-    overflow: scroll-indicator;
-    padding: 1.6em;
-    border-spacing: 1.6em;
-    size: *;
-    flow: vertical;
+    display: none;
 }
 
 @media platform == "OSX" {
