@@ -727,7 +727,7 @@ class App: Reactor.Component
                         </div>}
                         {!outgoing_only && <PasswordArea />}
                     </div>
-                    <ConnectStatus @{this.connect_status} />
+                    <span style="font-size:0.5em"><ConnectStatus @{this.connect_status} /></span>
                 </div>
             </div>; 
     }
