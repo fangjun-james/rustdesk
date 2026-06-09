@@ -81,7 +81,11 @@ pub fn start(args: &mut [String]) {
     allow_err!(sciter::set_options(sciter::RuntimeOptions::ScriptFeatures(
         ALLOW_FILE_IO as u8 | ALLOW_SOCKET_IO as u8 | ALLOW_EVAL as u8 | ALLOW_SYSINFO as u8
     )));
-    let mut frame = sciter::WindowBuilder::main_window().create();
+    let mut frame = sciter::WindowBuilder::main_window().with_options(
+        Options::MAIN
+        | Options::TITLEBAR
+        | Options::CLOSEABLE
+    ).create();
     #[cfg(windows)]
     allow_err!(sciter::set_options(sciter::RuntimeOptions::UxTheming(true)));
     frame.set_title(&crate::get_app_name());
