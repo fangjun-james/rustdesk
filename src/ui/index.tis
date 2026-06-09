@@ -718,6 +718,7 @@ class App: Reactor.Component
                         {!outgoing_only && <div .your-desktop>
                             {key_confirmed ? <input type="text" readonly value={formatId(get_id())}/> : translate("Generating ...")}
                         </div>}
+                        {!outgoing_only && <PasswordArea />}
                     </div>
                     <ConnectStatus @{this.connect_status}/>
                 </div>
@@ -1030,7 +1031,6 @@ class PasswordArea: Reactor.Component {
         <div .your-desktop>
             <div>{translate('One-time Password')}</div>
             <div .password style="flow:horizontal">
-                {this.renderPop()}
                 <PasswordEyeArea />
                 {!disable_settings && svg_edit}
             </div>
