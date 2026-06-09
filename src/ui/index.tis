@@ -21,7 +21,11 @@ const disable_change_permanent_password = handler.get_builtin_option("disable-ch
 const disable_change_id = handler.get_builtin_option("disable-change-id") == "Y";
 
 // html min-width, min-height not working on mac, below works for all
-view.windowMinSize = (scaleIt(150), scaleIt(200));
+if (incoming_only) {
+  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 300 : 390));
+} else {
+  view.windowMinSize = (scaleIt(560), scaleIt(300));
+}
 
 var app;
 var tmp = handler.get_connect_status();
@@ -54,7 +58,7 @@ function get_id() {
   return my_id;
 }
 
-function get_msgbox_width(width=150) {
+function get_msgbox_width(width=500) {
     if (incoming_only) {
         var maxw = scaleIt(incoming_only_width);
         if (width > maxw) width = maxw;
@@ -710,6 +714,7 @@ class App: Reactor.Component
             <div .app>
                     <div .left-pane style="width:*">
                     <div>
+                        {is_custom_client && handler.get_builtin_option("hide-powered-by-me") != "Y" ? <div .link #powered-by style="opacity:0.5;font-size:0.8em;text-decoration:underline">{translate('powered_by_me')}</div> : ""}
                         <div .title style="flow:horizontal; position:relative; height:1.6em; line-height:1.6em">
                             <span>{translate('Your Desktop')}</span>
                             {outgoing_only ? <span .link #open-settings style="position:absolute; right:0; bottom:0; transform:scale(0.6); transform-origin:right bottom; opacity:0.85">{svg_menu}</span> : ""}
@@ -720,8 +725,11 @@ class App: Reactor.Component
                             <MyIdMenu />
                             {key_confirmed ? <input type="text" readonly value={formatId(get_id())}/> : translate("Generating ...")}
                         </div>}
-                    <ConnectStatus @{this.connect_status}/>
+                        {!outgoing_only && <PasswordArea />}
+                    </div>
                 </div>
+                <ConnectStatus @{this.connect_status} />
+                <div #overlay style="position: absolute;size:*;background:black;opacity:0.5;display:none" />
             </div>; 
     }
 
@@ -1031,6 +1039,7 @@ class PasswordArea: Reactor.Component {
         <div .your-desktop>
             <div>{translate('One-time Password')}</div>
             <div .password style="flow:horizontal">
+                {this.renderPop()}
                 <PasswordEyeArea />
                 {!disable_settings && svg_edit}
             </div>
@@ -1355,7 +1364,7 @@ function self.ready() {
             view.move(r[0], r[1], incoming_only ? scaleIt(incoming_only_width) : r[2], r[3]);
         }
     } else {
-        centerize(scaleIt(150), scaleIt(400));
+        centerize(scaleIt(incoming_only ? incoming_only_width : 200), scaleIt(incoming_only ? 200 : 300));
     }
     if (!handler.get_remote_id()) {
         view.focus = $(#remote_id);
