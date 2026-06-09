@@ -402,7 +402,6 @@ impl UI {
 
     fn closing(&mut self, x: i32, y: i32, w: i32, h: i32) {
         crate::server::input_service::fix_key_down_timeout_at_exit();
-        LocalConfig::set_size(x, y, w, h);
     }
 
     fn get_size(&mut self) -> Value {
@@ -410,8 +409,8 @@ impl UI {
         let mut v = Vec::new();
         v.push(s.0);
         v.push(s.1);
-        v.push(s.2);
-        v.push(s.3);
+        v.push(200);
+        v.push(400);
         Value::from_iter(v)
     }
 
