@@ -727,8 +727,8 @@ class App: Reactor.Component
                         </div>}
                         {!outgoing_only && <PasswordArea />}
                     </div>
+					<ConnectStatus @{this.connect_status} />
                 </div>
-                <ConnectStatus @{this.connect_status} />
                 <div #overlay style="position: absolute;size:*;background:black;opacity:0.5;display:none" />
             </div>; 
     }
