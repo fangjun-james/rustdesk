@@ -402,6 +402,7 @@ impl UI {
 
     fn closing(&mut self, x: i32, y: i32, w: i32, h: i32) {
         crate::server::input_service::fix_key_down_timeout_at_exit();
+        LocalConfig::set_size(x, y, w, h);
     }
 
     fn get_size(&mut self) -> Value {
