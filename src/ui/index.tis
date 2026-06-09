@@ -22,9 +22,9 @@ const disable_change_id = handler.get_builtin_option("disable-change-id") == "Y"
 
 // html min-width, min-height not working on mac, below works for all
 if (incoming_only) {
-  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 300 : 390));
+  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 200 : 200));
 } else {
-  view.windowMinSize = (scaleIt(560), scaleIt(300));
+  view.windowMinSize = (scaleIt(260), scaleIt(200));
 }
 
 var app;
@@ -58,7 +58,7 @@ function get_id() {
   return my_id;
 }
 
-function get_msgbox_width(width=500) {
+function get_msgbox_width(width=260) {
     if (incoming_only) {
         var maxw = scaleIt(incoming_only_width);
         if (width > maxw) width = maxw;
