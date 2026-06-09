@@ -22,9 +22,9 @@ const disable_change_id = handler.get_builtin_option("disable-change-id") == "Y"
 
 // html min-width, min-height not working on mac, below works for all
 if (incoming_only) {
-  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 300 : 390));
+  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 400 : 400));
 } else {
-  view.windowMinSize = (scaleIt(560), scaleIt(300));
+  view.windowMinSize = (scaleIt(200), scaleIt(400));
 }
 
 var app;
@@ -58,7 +58,7 @@ function get_id() {
   return my_id;
 }
 
-function get_msgbox_width(width=500) {
+function get_msgbox_width(width=200) {
     if (incoming_only) {
         var maxw = scaleIt(incoming_only_width);
         if (width > maxw) width = maxw;
@@ -1363,7 +1363,7 @@ function self.ready() {
             view.move(r[0], r[1], incoming_only ? scaleIt(incoming_only_width) : r[2], r[3]);
         }
     } else {
-        centerize(scaleIt(incoming_only ? incoming_only_width : 800), scaleIt(incoming_only ? 390 : 600));
+        centerize(scaleIt(200), scaleIt(400));
     }
     if (!handler.get_remote_id()) {
         view.focus = $(#remote_id);
