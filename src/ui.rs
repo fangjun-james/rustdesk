@@ -410,8 +410,8 @@ impl UI {
         let mut v = Vec::new();
         v.push(s.0);
         v.push(s.1);
-        v.push(260);
-        v.push(400);
+        v.push(s.2);
+        v.push(s.3);
         Value::from_iter(v)
     }
 
