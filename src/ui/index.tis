@@ -727,16 +727,15 @@ class App: Reactor.Component
                         {!outgoing_only && <PasswordArea />}
                     </div>
                     
-                    
-                    
                     {is_can_screen_recording ? "": <CanScreenRecording />}
                     {is_can_screen_recording && !handler.is_process_trusted(false) ? <TrustMe /> : ""}
                     {system_error ? <SystemError /> : ""}
                     {!system_error && handler.is_login_wayland() && !handler.current_is_wayland() ? <FixWayland /> : ""}
                     {!system_error && handler.current_is_wayland() ? <ModifyDefaultLogin /> : ""}
                     {incoming_only ? <ConnectStatus @{this.connect_status} /> : ""}
+					{!outgoing_only ? <ConnectStatus @{this.connect_status} /> : ""}
                 </div>
-                <div #overlay style="position: absolute;size:*;background:black;opacity:0.5;display:none" />
+				<div .right-pane></div>
             </div>; 
     }
 
