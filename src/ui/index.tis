@@ -7,7 +7,7 @@ const msgbox_default_height = 180;
 const incoming_only_width = 180;
 
 const outgoing_only = handler.is_outgoing_only();
-const incoming_only = handler.is_incoming_only();
+const incoming_only = false; // 强制显示完整界面 handler.is_incoming_only();
 const disable_installation = handler.is_disable_installation();
 const disable_account = handler.is_disable_account();
 const disable_settings = handler.is_disable_settings();
@@ -21,12 +21,12 @@ const disable_change_permanent_password = handler.get_builtin_option("disable-ch
 const disable_change_id = handler.get_builtin_option("disable-change-id") == "Y";
 
 // html min-width, min-height not working on mac, below works for all
-if (incoming_only) {
-  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 300 : 390));
-} else {
-  view.windowMinSize = (scaleIt(560), scaleIt(300));
-}
-
+// if (incoming_only) {
+//  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 300 : 390));
+// } else {
+//  view.windowMinSize = (scaleIt(560), scaleIt(300));
+// }
+view.windowMinSize = (scaleIt(560), scaleIt(300));
 var app;
 var tmp = handler.get_connect_status();
 var connect_status = tmp[0];
@@ -712,7 +712,7 @@ class App: Reactor.Component
         var is_can_screen_recording = handler.is_can_screen_recording(false);
         return
             <div .app>
-                    <div .left-pane style={incoming_only ? "width:*" : ""}>
+                    <div .left-pane> 
                     <div>
                         {is_custom_client && handler.get_builtin_option("hide-powered-by-me") != "Y" ? <div .link #powered-by style="opacity:0.5;font-size:0.8em;text-decoration:underline">{translate('powered_by_me')}</div> : ""}
                         <div .title style="flow:horizontal; position:relative; height:1.6em; line-height:1.6em">
@@ -1062,7 +1062,7 @@ class PasswordArea: Reactor.Component {
         <div .your-desktop>
             <div>{translate('One-time Password')}</div>
             <div .password style="flow:horizontal">
-                {this.renderPop()}
+               
                 <PasswordEyeArea />
                 {!disable_settings && svg_edit}
             </div>
