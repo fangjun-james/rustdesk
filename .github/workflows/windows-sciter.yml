@@ -1,7 +1,7 @@
-name: Build Windows Sciter (x64)
+name: Build Windows Sciter x86 Single File
 
 on:
-  workflow_dispatch:          # 手动触发
+  workflow_dispatch:                    # 手动触发
   push:
     branches: [ master, main ]
     paths:
@@ -9,19 +9,18 @@ on:
       - 'libs/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - '.github/workflows/windows-sciter.yml'
-  pull_request:
-    branches: [ master, main ]
+      - 'res/**'
+      - '.github/workflows/windows-sciter-x86-portable.yml'
 
 env:
-  SCITER_RUST_VERSION: "1.75"          # Sciter 对高版本 Rust 有 ABI 问题，必须用 1.75
+  SCITER_RUST_VERSION: "1.75"
   LLVM_VERSION: "15.0.6"
   VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
-  VERSION: "1.5.1"                     # 可按需要修改
+  VERSION: "1.5.1"                      # 最终文件名中的版本号
 
 jobs:
-  build-windows-sciter:
-    name: Windows Sciter x64
+  build-sciter-x86-portable:
+    name: Build rustdesk-${{ env.VERSION }}-x86-sciter.exe
     runs-on: windows-2022
     defaults:
       run:
@@ -33,22 +32,25 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v2
+      - name: Install LLVM (32-bit)
+        uses: rustdesk-org/install-llvm-action-32bit@6aa7d9ad3df84dff01cd4596dd0fc880a7f47fce
         with:
           version: ${{ env.LLVM_VERSION }}
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: ${{ env.SCITER_RUST_VERSION }}
-          targets: x86_64-pc-windows-msvc
-          components: rustfmt
+      - name: Install Rust (nightly for Sciter x86)
+        run: |
+          rustup toolchain install nightly-2023-10-13-i686-pc-windows-msvc \
+            --target i686-pc-windows-msvc \
+            --component rustfmt \
+            --profile minimal \
+            --no-self-update \
+            --force-non-host
+          rustup default nightly-2023-10-13-i686-pc-windows-msvc --force-non-host
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: windows-sciter
+          prefix-key: windows-sciter-x86-portable
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -58,65 +60,65 @@ jobs:
           doNotCache: false
 
       - name: Install vcpkg dependencies
+        env:
+          VCPKG_DEFAULT_HOST_TRIPLET: x86-windows-static
         run: |
           $VCPKG_ROOT/vcpkg install \
-            libvpx:x64-windows-static \
-            libyuv:x64-windows-static \
-            opus:x64-windows-static \
-            aom:x64-windows-static \
-            --triplet x64-windows-static \
+            --triplet x86-windows-static \
             --x-install-root="$VCPKG_ROOT/installed"
 
-      - name: Inline Sciter resources
+      - name: Build Sciter x86
         run: |
+          # 内联资源
           python3 res/inline-sciter.py
 
-      - name: Build Sciter version
-        run: |
-          # 使用 inline + hwcodec + vram
-          cargo build --locked --release --features inline,hwcodec,vram --bins
+          # 切换到 x86 专用 sciter-rs
+          sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
+          cargo update -p sciter-rs --precise 674e07d3066ca9a92ced3816203ab6b652629d1e
 
-      - name: Prepare Release folder
-        run: |
+          # 编译
+          cargo build --locked --features inline,vram,hwcodec --release --bins
+
+          # 准备 Release 目录
           mkdir -p Release
-          cp target/release/rustdesk.exe Release/
-          
-          # 下载 64-bit Sciter DLL
-          curl -LJ -o Release/sciter.dll \
-            https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.win/x64/sciter.dll
+          mv target/release/rustdesk.exe Release/
 
-          # 可选：下载虚拟显示器驱动（官方也带）
+          # 下载 32-bit Sciter DLL
+          curl -LJ -o Release/sciter.dll \
+            https://github.com/c-smile/sciter-sdk/raw/master/bin.win/x32/sciter.dll
+
+          # 下载虚拟显示器驱动（可选）
           curl -LJ -o usbmmidd_v2.zip \
             https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip
           unzip -o usbmmidd_v2.zip
+          rm -rf usbmmidd_v2/deviceinstaller.exe usbmmidd_v2/usbmmidd.bat || true
           mv usbmmidd_v2 Release/ || true
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustdesk-windows-sciter-x64
-          path: |
-            Release/rustdesk.exe
-            Release/sciter.dll
-            Release/usbmmidd_v2/
-          if-no-files-found: error
-
-      # 可选：生成便携版（portable）
-      - name: Build portable (optional)
-        if: false   # 改成 true 开启
+      - name: Generate single-file portable executable
         run: |
+          # 去掉 dpiAware（官方做法）
           sed -i '/dpiAware/d' res/manifest.xml || true
+
+          # 生成自解压单文件
           pushd libs/portable
           pip3 install -r requirements.txt
-          python3 generate.py -f ../../Release/ -o . -e ../../Release/rustdesk.exe
+          python3 generate.py \
+            -f ../../Release/ \
+            -o . \
+            -e ../../Release/rustdesk.exe
           popd
-          mkdir -p SignOutput
-          mv target/release/rustdesk-portable-packer.exe \
-             SignOutput/rustdesk-${{ env.VERSION }}-x64-sciter.exe
 
-      - name: Upload Portable
-        if: false
+          # 重命名为官方风格
+          mkdir -p output
+          mv target/release/rustdesk-portable-packer.exe \
+             output/rustdesk-${{ env.VERSION }}-x86-sciter.exe
+
+          echo "Generated file:"
+          ls -lh output/
+
+      - name: Upload single executable
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-windows-sciter-portable
-          path: SignOutput/
+          name: rustdesk-${{ env.VERSION }}-x86-sciter
+          path: output/rustdesk-${{ env.VERSION }}-x86-sciter.exe
+          if-no-files-found: error
