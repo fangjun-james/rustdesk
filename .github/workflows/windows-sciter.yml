@@ -1,5 +1,4 @@
 name: Build Windows Sciter x86 Single File
-
 on:
   workflow_dispatch:
   push:
@@ -25,7 +24,6 @@ jobs:
     defaults:
       run:
         shell: bash
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,18 +77,21 @@ jobs:
       - name: Install vcpkg dependencies
         env:
           VCPKG_DEFAULT_HOST_TRIPLET: x86-windows-static
-          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"   # 开启 GitHub Actions 二进制缓存
+          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
         run: |
           $VCPKG_ROOT/vcpkg install \
             --triplet x86-windows-static \
             --x-install-root="$VCPKG_ROOT/installed" \
             --clean-after-build
 
-      # ========== 编译 ==========
+      # ========== 编译（注入自定义服务器） ==========
       - name: Build Sciter x86
         env:
           CARGO_INCREMENTAL: 0
           CARGO_TERM_COLOR: always
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          API_SERVER: ${{ secrets.API_SERVER }}
         run: |
           python3 res/inline-sciter.py
           sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
