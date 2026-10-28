@@ -31,7 +31,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 1
 
+      # ========== 缓存部分（关键） ==========
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: windows-sciter-x86-portable
+          cache-all-crates: true
+
+      - name: Cache vcpkg + LLVM
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\downloads
+            C:\Program Files\LLVM
+          key: deps-x86-${{ env.VCPKG_COMMIT_ID }}-${{ env.LLVM_VERSION }}
+          restore-keys: |
+            deps-x86-${{ env.VCPKG_COMMIT_ID }}-
+            deps-x86-
+
+      # ========== 工具链安装 ==========
       - name: Install LLVM (32-bit)
         uses: rustdesk-org/install-llvm-action-32bit@6aa7d9ad3df84dff01cd4596dd0fc880a7f47fce
         with:
@@ -39,19 +60,15 @@ jobs:
 
       - name: Install Rust (nightly for Sciter x86)
         run: |
+          rustup set profile minimal
           rustup toolchain install nightly-2023-10-13-i686-pc-windows-msvc \
             --target i686-pc-windows-msvc \
             --component rustfmt \
-            --profile minimal \
             --no-self-update \
             --force-non-host
           rustup default nightly-2023-10-13-i686-pc-windows-msvc --force-non-host
 
-      - name: Cache Cargo
-        uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: windows-sciter-x86-portable
-
+      # ========== vcpkg ==========
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -62,26 +79,27 @@ jobs:
       - name: Install vcpkg dependencies
         env:
           VCPKG_DEFAULT_HOST_TRIPLET: x86-windows-static
+          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"   # 开启 GitHub Actions 二进制缓存
         run: |
           $VCPKG_ROOT/vcpkg install \
             --triplet x86-windows-static \
-            --x-install-root="$VCPKG_ROOT/installed"
+            --x-install-root="$VCPKG_ROOT/installed" \
+            --clean-after-build
 
+      # ========== 编译 ==========
       - name: Build Sciter x86
+        env:
+          CARGO_INCREMENTAL: 0
+          CARGO_TERM_COLOR: always
         run: |
           python3 res/inline-sciter.py
-
           sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
           cargo update -p sciter-rs --precise 674e07d3066ca9a92ced3816203ab6b652629d1e
-
-          cargo build --locked --features inline,vram,hwcodec --release --bins
-
+          cargo build --locked --features inline,vram,hwcodec --release --bins -j 4
           mkdir -p Release
           mv target/release/rustdesk.exe Release/
-
           curl -LJ -o Release/sciter.dll \
             https://github.com/c-smile/sciter-sdk/raw/master/bin.win/x32/sciter.dll
-
           curl -LJ -o usbmmidd_v2.zip \
             https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip
           unzip -o usbmmidd_v2.zip
@@ -91,7 +109,6 @@ jobs:
       - name: Generate single-file portable executable
         run: |
           sed -i '/dpiAware/d' res/manifest.xml || true
-
           pushd libs/portable
           pip3 install -r requirements.txt
           python3 generate.py \
@@ -99,11 +116,9 @@ jobs:
             -o . \
             -e ../../Release/rustdesk.exe
           popd
-
           mkdir -p output
           mv target/release/rustdesk-portable-packer.exe \
              output/rustdesk-${{ env.VERSION }}-x86-sciter.exe
-
           echo "Generated file:"
           ls -lh output/
 
