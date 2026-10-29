@@ -734,7 +734,7 @@ class App: Reactor.Component
                     {!system_error && handler.current_is_wayland() ? <ModifyDefaultLogin /> : ""}
                     {incoming_only ? <ConnectStatus @{this.connect_status} /> : ""}
                 </div>
-				
+				<div .right-pane style="right:0; bottom:0; width:0; height:0; overflow:hidden"> 
 				{!outgoing_only ? <ConnectStatus @{this.connect_status} /> : ""}
             </div>; 
     }
