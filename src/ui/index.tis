@@ -710,26 +710,26 @@ class App: Reactor.Component
             <div .app>
                 <div .left-pane style="width:*; padding: 16px 20px;">
                     <div>
-                        <!-- 主标题：富宝远程 -->
+                  
                         <div .title style="flow:horizontal; position:relative; height:1.8em; line-height:1.8em; font-size:1.25em; font-weight:600; margin-bottom:18px;">
-                            <span>富宝远程</span>
+                            <span>{translate('Your Desktop')}</span>
                             <span .link #open-settings style="position:absolute; right:0; bottom:0; transform:scale(0.7); transform-origin:right bottom; opacity:0.7;">{svg_menu}</span>
                         </div>
 
                         {outgoing_only ? <div style="position:absolute; left:-10000px; top:-10000px; width:0; height:0; overflow:hidden"><MyIdMenu /></div> : ""}
                         
-                        <!-- 本机 ID -->
+                      
                         {!outgoing_only && <div style="margin-bottom:14px; flow:horizontal; vertical-align:middle;">
-                            <span style="color:#555; font-size:0.95em; width:70px;">本机 ID:</span>
+                            <span style="color:#555; font-size:0.95em; width:70px;">ID:</span>
                             <span style="font-size:1.15em; font-weight:500; letter-spacing:0.5px;">
                                 {key_confirmed ? formatId(get_id()) : translate("Generating ...")}
                             </span>
                             <MyIdMenu />
                         </div>}
                         
-                        <!-- 密码 -->
+                       
                         {!outgoing_only && <div style="margin-bottom:10px; flow:horizontal; vertical-align:middle;">
-                            <span style="color:#555; font-size:0.95em; width:70px;">密码:</span>
+                            <span style="color:#555; font-size:0.95em; width:70px;">PassWord:</span>
                             <PasswordArea />
                         </div>}
                     </div>
@@ -740,7 +740,7 @@ class App: Reactor.Component
                     {!system_error && handler.is_login_wayland() && !handler.current_is_wayland() ? <FixWayland /> : ""}
                     {!system_error && handler.current_is_wayland() ? <ModifyDefaultLogin /> : ""}
                     
-                    <!-- 底部状态 -->
+                
                     <div style="margin-top:20px;">
                         <ConnectStatus @{this.connect_status} />
                     </div>
