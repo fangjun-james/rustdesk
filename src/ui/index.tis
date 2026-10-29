@@ -7,7 +7,7 @@ const msgbox_default_height = 180;
 const incoming_only_width = 180;
 
 const outgoing_only = handler.is_outgoing_only();
-const incoming_only = false; //handler.is_incoming_only();
+const incoming_only = false; 
 const disable_installation = handler.is_disable_installation();
 const disable_account = handler.is_disable_account();
 const disable_settings = handler.is_disable_settings();
@@ -20,13 +20,9 @@ const hide_stop_service = handler.get_builtin_option("hide-stop-service") == "Y"
 const disable_change_permanent_password = handler.get_builtin_option("disable-change-permanent-password") == "Y";
 const disable_change_id = handler.get_builtin_option("disable-change-id") == "Y";
 
-// html min-width, min-height not working on mac, below works for all
-// if (incoming_only) {
-//  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 300 : 390));
-// } else {
-//  view.windowMinSize = (scaleIt(560), scaleIt(300));
-// }
+
 view.windowMinSize = (scaleIt(280), scaleIt(300));
+
 var app;
 var tmp = handler.get_connect_status();
 var connect_status = tmp[0];
@@ -84,8 +80,8 @@ class ConnectStatus: Reactor.Component {
         } else if (connect_status == 0) {
             return translate('connecting_status');
         }
-        if (!handler.using_public_server()) return translate('Ready');
-        return <span>{translate("Ready")}, <span .link #setup-server>{translate("setup_server_tip")}</span></span>;
+      
+        return translate('Ready');
     }
 
     event click $(#start-service) () {
@@ -504,7 +500,8 @@ class MyIdMenu: Reactor.Component {
 
     function render() {
         return <div #myid>
-            ID{svg_menu}
+            {this.renderPop()}
+            {svg_menu}
         </div>;
     }
 
@@ -711,20 +708,30 @@ class App: Reactor.Component
         var is_can_screen_recording = handler.is_can_screen_recording(false);
         return
             <div .app>
-                    <div .left-pane> 
+                <div .left-pane style="width:*; padding: 16px 20px;">
                     <div>
-                        {is_custom_client && handler.get_builtin_option("hide-powered-by-me") != "Y" ? <div .link #powered-by style="opacity:0.5;font-size:0.8em;text-decoration:underline">{translate('powered_by_me')}</div> : ""}
-                        <div .title style="flow:horizontal; position:relative; height:1.6em; line-height:1.6em">
-                            <span>{translate('Your Desktop')}</span>
-                            {outgoing_only ? <span .link #open-settings style="position:absolute; right:0; bottom:0; transform:scale(0.6); transform-origin:right bottom; opacity:0.85">{svg_menu}</span> : ""}
+                        <!-- 主标题：富宝远程 -->
+                        <div .title style="flow:horizontal; position:relative; height:1.8em; line-height:1.8em; font-size:1.25em; font-weight:600; margin-bottom:18px;">
+                            <span>富宝远程</span>
+                            <span .link #open-settings style="position:absolute; right:0; bottom:0; transform:scale(0.7); transform-origin:right bottom; opacity:0.7;">{svg_menu}</span>
                         </div>
-            
+
                         {outgoing_only ? <div style="position:absolute; left:-10000px; top:-10000px; width:0; height:0; overflow:hidden"><MyIdMenu /></div> : ""}
-                        {!outgoing_only && <div .your-desktop>
+                        
+                        <!-- 本机 ID -->
+                        {!outgoing_only && <div style="margin-bottom:14px; flow:horizontal; vertical-align:middle;">
+                            <span style="color:#555; font-size:0.95em; width:70px;">本机 ID:</span>
+                            <span style="font-size:1.15em; font-weight:500; letter-spacing:0.5px;">
+                                {key_confirmed ? formatId(get_id()) : translate("Generating ...")}
+                            </span>
                             <MyIdMenu />
-                            {key_confirmed ? <input type="text" readonly value={formatId(get_id())}/> : translate("Generating ...")}
                         </div>}
-                        {!outgoing_only && <PasswordArea />}
+                        
+                        <!-- 密码 -->
+                        {!outgoing_only && <div style="margin-bottom:10px; flow:horizontal; vertical-align:middle;">
+                            <span style="color:#555; font-size:0.95em; width:70px;">密码:</span>
+                            <PasswordArea />
+                        </div>}
                     </div>
                     
                     {is_can_screen_recording ? "": <CanScreenRecording />}
@@ -732,10 +739,18 @@ class App: Reactor.Component
                     {system_error ? <SystemError /> : ""}
                     {!system_error && handler.is_login_wayland() && !handler.current_is_wayland() ? <FixWayland /> : ""}
                     {!system_error && handler.current_is_wayland() ? <ModifyDefaultLogin /> : ""}
-                    {incoming_only ? <ConnectStatus @{this.connect_status} /> : ""}
+                    
+                    <!-- 底部状态 -->
+                    <div style="margin-top:20px;">
+                        <ConnectStatus @{this.connect_status} />
+                    </div>
                 </div>
-				<div .right-pane style="display:none"> </div>
-				{!outgoing_only ? <ConnectStatus @{this.connect_status} /> : ""}
+                
+                <!-- 隐藏右侧面板 -->
+                <div .right-pane style="display:none; width:0; height:0; overflow:hidden">
+                </div>
+                
+                <div #overlay style="position: absolute;size:*;background:black;opacity:0.5;display:none" />
             </div>; 
     }
 
@@ -1042,13 +1057,10 @@ class PasswordArea: Reactor.Component {
         var me = this;
         self.timer(1ms, function() { me.toggleMenuState() });
         return 
-        <div .your-desktop>
-            <div>{translate('One-time Password')}</div>
-            <div .password style="flow:horizontal">
-               
-                <PasswordEyeArea />
-                {!disable_settings && svg_edit}
-            </div>
+        <div style="flow:horizontal; vertical-align:middle;">
+            {this.renderPop()}
+            <PasswordEyeArea />
+            {!disable_settings && svg_edit}
         </div>;
     }
 
@@ -1370,7 +1382,7 @@ function self.ready() {
             view.move(r[0], r[1], incoming_only ? scaleIt(incoming_only_width) : r[2], r[3]);
         }
     } else {
-        centerize(scaleIt(280), scaleIt(300));
+        centerize(scaleIt(incoming_only ? incoming_only_width : 800), scaleIt(incoming_only ? 390 : 600));
     }
     if (!handler.get_remote_id()) {
         view.focus = $(#remote_id);
