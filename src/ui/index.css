@@ -150,7 +150,7 @@ span.clear-input:hover {
 }
 
 .right-pane {
-    size: *;
+    size: 0px;
     background: color(gray-bg);
 }
 
