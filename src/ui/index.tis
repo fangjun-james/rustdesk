@@ -746,7 +746,6 @@ class App: Reactor.Component
                     </div>
                 </div>
                 
-                <!-- 隐藏右侧面板 -->
                 <div .right-pane style="display:none; width:0; height:0; overflow:hidden">
                 </div>
                 
