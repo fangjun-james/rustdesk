@@ -1,9 +1,11 @@
 if (is_osx) view.windowBlurbehind = #light;
 stdout.println("current platform:", OS);
 stdout.println("is_xfce: ", is_xfce);
+
 // See default height in common.tis `msgbox()`.
 const msgbox_default_height = 180;
-const incoming_only_width = 320;
+const incoming_only_width = 180;
+
 const outgoing_only = handler.is_outgoing_only();
 const incoming_only = handler.is_incoming_only();
 const disable_installation = handler.is_disable_installation();
@@ -18,8 +20,12 @@ const hide_stop_service = handler.get_builtin_option("hide-stop-service") == "Y"
 const disable_change_permanent_password = handler.get_builtin_option("disable-change-permanent-password") == "Y";
 const disable_change_id = handler.get_builtin_option("disable-change-id") == "Y";
 
-
-view.windowMinSize = (scaleIt(320), scaleIt(220));
+// html min-width, min-height not working on mac, below works for all
+if (incoming_only) {
+  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 300 : 390));
+} else {
+  view.windowMinSize = (scaleIt(560), scaleIt(300));
+}
 
 var app;
 var tmp = handler.get_connect_status();
@@ -30,39 +36,46 @@ var using_public_server = handler.using_public_server();
 var software_update_url = "";
 var key_confirmed = tmp[1];
 var system_error = "";
+
 const default_option_lang = is_custom_client ? 'default' : '';
 const default_option_yes = is_custom_client ? 'Y' : '';
 const default_option_no = is_custom_client ? 'N' : '';
 const default_option_whitelist = is_custom_client ? ',' : '';
 const default_option_approve_mode = is_custom_client ? 'password-click' : '';
+
 const grey_text_style = "color:#888;";
+
 var svg_menu = <svg #menu viewBox="0 0 512 512">
-	<circle cx="256" cy="256" r="64" />
-	<circle cx="256" cy="448" r="64" />
-	<circle cx="256" cy="64" r="64" />
+	<circle cx="256" cy="256" r="64"/>
+	<circle cx="256" cy="448" r="64"/>
+	<circle cx="256" cy="64" r="64"/>
 </svg>;
-var svg_refresh_password = <svg #refresh-password xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38" /></svg>;
+var svg_refresh_password = <svg #refresh-password xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38"/></svg>;
+
 var my_id = handler.get_id();
 function get_id() {
   my_id = handler.get_id();
   return my_id;
 }
+
 function get_msgbox_width(width=500) {
-    var maxw = scaleIt(incoming_only_width);
-    if (width > maxw) width = maxw;
+    if (incoming_only) {
+        var maxw = scaleIt(incoming_only_width);
+        if (width > maxw) width = maxw;
+    }
     return width;
 }
 
 class ConnectStatus: Reactor.Component {
     function render() {
-        var dotColor = service_stopped ? "#888" : (connect_status>0 ? "#2ecc71" : "#f39c12");
         return
-            <div .connect-status style="margin-top:8px;font-size:14px;">
-                <span style={`color:${dotColor};margin-right:4px;font-size:16px`}>●</span>
+            <div .connect-status>
+                <span class={"connect-status-icon connect-status" + (service_stopped ? 0 : connect_status)} />
                 {this.getConnectStatusStr()}
                 {service_stopped ? <span .link #start-service>{translate('Start service')}</span> : ""}
             </div>;
     }
+
     function getConnectStatusStr() {
         if (service_stopped) {
             return translate("Service is not running");
@@ -74,9 +87,11 @@ class ConnectStatus: Reactor.Component {
         if (!handler.using_public_server()) return translate('Ready');
         return <span>{translate("Ready")}, <span .link #setup-server>{translate("setup_server_tip")}</span></span>;
     }
+
     event click $(#start-service) () {
         handler.set_option("stop-service", "");
     }
+
     event click $(#setup-server) () {
         handler.open_url("https://rustdesk.com/blog/id-relay-set/");
     }
@@ -88,7 +103,7 @@ function createNewConnect(id, type) {
     if (!id) return;
     var old_id = id;
     id = handler.handle_relay_id(id);
-    var force_relay = old_id != id;
+    var force_relay = old_id != id; 
     if (id == my_id) {
         msgbox("custom-error", "Error", "You cannot connect to your own computer");
         return;
@@ -103,24 +118,26 @@ class ShareRdp: Reactor.Component {
         var cls = handler.is_share_rdp()  ? "selected" : "line-through";
         return <li class={cls}><span>{svg_checkmark}</span>{rdp_shared_string}</li>;
     }
-
+    
     function onClick() {
         handler.set_share_rdp(!handler.is_share_rdp());
         this.update();
     }
 }
+
 var direct_server;
 class DirectServer: Reactor.Component {
     function this() {
         direct_server = this;
     }
+
     function render() {
         var text = translate("Enable direct IP access");
         var enabled = handler.get_option("direct-server") == "Y";
         var cls = enabled ? "selected" : "line-through";
         return <li class={cls}><span>{svg_checkmark}</span>{text}{enabled && <EditDirectAccessPort />}</li>;
     }
-
+    
     function onClick() {
         if (is_edit_rdp_port) {
             is_edit_rdp_port = false;
@@ -130,12 +147,14 @@ class DirectServer: Reactor.Component {
         this.update();
     }
 }
+
 var myIdMenu;
 var audioInputMenu;
 class AudioInputs: Reactor.Component {
     function this() {
         audioInputMenu = this;
     }
+
     function render() {
         if (!this.show) return <li />;
         var inputs = handler.get_sound_inputs();
@@ -153,13 +172,16 @@ class AudioInputs: Reactor.Component {
             </menu>
         </li>;
     }
+
     function get_default() {
         if (is_win) return "System Sound";
         return "";
     }
+
     function get_value() {
         return handler.get_option("audio-input") || this.get_default();
     }
+
     function toggleMenuState() {
         var el = this.$(li#enable-audio);
         var enabled = handler.get_option(el.id) != "N";
@@ -175,6 +197,7 @@ class AudioInputs: Reactor.Component {
             el.attributes.toggleClass("selected", selected);
         }
     }
+
     event click $(menu#audio-input>li) (_, me) {
         if (me.state.disabled) return;
         var v = me.id;
@@ -188,6 +211,7 @@ class AudioInputs: Reactor.Component {
         this.toggleMenuState();
     }
 };
+
 class Languages: Reactor.Component {
     function render() {
         var langs = JSON.parse(handler.get_langs());
@@ -203,6 +227,8 @@ class Languages: Reactor.Component {
             </menu>
         </li>;
     }
+
+
     function toggleMenuState() {
         var cur = handler.get_local_option("lang") || "default";
         var is_opt_fixed = handler.is_option_fixed("lang");
@@ -214,6 +240,7 @@ class Languages: Reactor.Component {
             }
         }
     }
+
     event click $(menu#languages>li) (_, me) {
         if (me.state.disabled) return;
         var v = me.id;
@@ -223,11 +250,13 @@ class Languages: Reactor.Component {
         this.toggleMenuState();
     }
 }
+
 var enhancementsMenu;
 class Enhancements: Reactor.Component {
     function this() {
         enhancementsMenu = this;
     }
+
     function render() {
         var has_hwcodec = handler.has_hwcodec();
         var has_vram = handler.has_vram();
@@ -244,6 +273,7 @@ class Enhancements: Reactor.Component {
             </menu>
         </li>;
     }
+
     function toggleMenuState() {
         for (var el in $$(menu#enhancements-menu>li)) {
             if (el.id && el.id.indexOf("enable-") == 0) {
@@ -269,7 +299,9 @@ class Enhancements: Reactor.Component {
                 }
             }
         }
+
     }
+
     event click $(menu#enhancements-menu>li) (_, me) {
         if (me.state.disabled) return;
         var v = me.id;
@@ -319,12 +351,14 @@ class Enhancements: Reactor.Component {
         this.toggleMenuState();
     }
 }
+
 function getUserName() {
     try {
         return JSON.parse(handler.get_local_option("user_info")).name;
     } catch(e) {}
     return '';
 }
+
 function getAccountLabelWithHandle() {
     try {
         var user = JSON.parse(handler.get_local_option("user_info"));
@@ -340,6 +374,7 @@ function getAccountLabelWithHandle() {
     } catch(e) {}
     return '';
 }
+
 // Shared dialog functions
 function open_custom_server_dialog() {
     var configOptions = handler.get_options();
@@ -383,6 +418,7 @@ function open_custom_server_dialog() {
                 if (typeof show_progress === 'function') show_progress(-1);
             }, 260, get_msgbox_width());
 }
+
 function open_whitelist_dialog() {
     var is_opt_fixed = handler.is_option_fixed("whitelist");
     var v = handler.get_option("whitelist");
@@ -415,6 +451,7 @@ function open_whitelist_dialog() {
                 if (typeof show_progress === 'function') show_progress(-1);
             }, 300, get_msgbox_width());
 }
+
 function open_proxy_dialog() {
     var is_opt_fixed = handler.is_option_fixed("proxy-url");
     var socks5 = handler.get_socks() || {};
@@ -448,24 +485,30 @@ function open_proxy_dialog() {
                 if (typeof show_progress === 'function') show_progress(-1);
             }, 240, get_msgbox_width());
 }
+
 function updateTheme() {
     var root_element = self;
     if (handler.get_option("allow-darktheme") == "Y") {
+        // enable dark theme
         root_element.attributes.toggleClass("darktheme", true);
     } else {
+        // disable dark theme
         root_element.attributes.toggleClass("darktheme", false);
     }
 }
+
 class MyIdMenu: Reactor.Component {
     function this() {
         myIdMenu = this;
     }
+
     function render() {
         return <div #myid>
             {this.renderPop()}
             ID{svg_menu}
         </div>;
     }
+
     function renderPop() {
         var accountLabel = handler.get_local_option("access_token") ? getAccountLabelWithHandle() : '';
         return <popup>
@@ -503,14 +546,16 @@ class MyIdMenu: Reactor.Component {
                 <div .separator />
                 <li #allow-darktheme><span>{svg_checkmark}</span>{translate('Dark Theme')}</li>
                 <Languages />
-                {disable_installation ? "" : <li #allow-auto-update><span>{svg_checkmark}</span>{translate('Auto update')}</li>}
+                {disable_installation ? "" : <li #allow-auto-update><span>{svg_checkmark}</span>{translate('Auto update')}</li>} 
                 <li #about>{translate('About')} {" "}{handler.get_app_name()}</li>
             </menu>
         </popup>;
     }
+
     event click $(svg#menu) (_, me) {
         this.showSettingMenu();
     }
+
     function showSettingMenu() {
         audioInputMenu.update({ show: true });
         this.toggleMenuState();
@@ -518,12 +563,15 @@ class MyIdMenu: Reactor.Component {
         var menu = this.$(menu#config-options);
         this.$(svg#menu).popup(menu);
     }
+
     event click $(li#login) () {
         login();
     }
+
     event click $(li#logout) () {
         logout();
     }
+
     function toggleMenuState() {
         for (var el in $$(menu#config-options>li)) {
             var id = el.id;
@@ -538,6 +586,8 @@ class MyIdMenu: Reactor.Component {
                 el.attributes.toggleClass("selected", enabled);
                 el.attributes.toggleClass("line-through", !enabled);
             } else if (id == "whitelist") {
+                // whitelist should be clickable even when fixed (to view the content)
+                // The dialog will show readonly textarea and no OK button when fixed
                 continue;
             }
             if (is_opt_fixed) {
@@ -545,6 +595,7 @@ class MyIdMenu: Reactor.Component {
             }
         }
     }
+
     function showAbout() {
         var name = handler.get_app_name();
         msgbox("custom-nocancel-nook-hasclose", translate("About") + " " + name, "<div style='line-height: 2em'> \
@@ -562,6 +613,7 @@ class MyIdMenu: Reactor.Component {
             };
         }, 400, get_msgbox_width());
     }
+
     event click $(menu#config-options>li) (_, me) {
         if (me.state.disabled) return;
         if (me.id && me.id.indexOf("enable-") == 0) {
@@ -581,8 +633,8 @@ class MyIdMenu: Reactor.Component {
         } else if (me.id == "stop-service") {
             handler.set_option("stop-service", service_stopped ? default_option_no : "Y");
         } else if (me.id == "change-id") {
-            var id_label_width = "100px";
-            var input_width = "250px";
+            var id_label_width = incoming_only ? "50px" : "100px";
+            var input_width = incoming_only ? (incoming_only_width - 20) + "px" : "250px";
             msgbox("custom-id", translate("Change ID"), "<div .form .set-password> \
             <div>" + translate('id_change_tip') + " </div> \
             <div><span style='width: " + id_label_width + "; display:inline-block'>ID: </span><input|text .outline-focus style='width: " + input_width + "' name='id' /></div> \
@@ -612,11 +664,13 @@ class MyIdMenu: Reactor.Component {
         }
     }
 }
+
 var is_edit_direct_access_port;
 class EditDirectAccessPort: Reactor.Component {
     function render() {
         return <span style="margin-left: 12px; padding: 0 6px; display: inline-block;" .link>{svg_edit}</span>;
     }
+
     function onMouse(evt) {
         if (evt.type == Event.MOUSE_DOWN) {
             is_edit_direct_access_port = true;
@@ -624,6 +678,7 @@ class EditDirectAccessPort: Reactor.Component {
         }
     }
 }
+
 function editDirectAccessPort() {
     var is_opt_fixed = handler.is_option_fixed("direct-access-port");
     var p0 = handler.get_option('direct-access-port');
@@ -647,34 +702,70 @@ function editDirectAccessPort() {
       }, msgbox_default_height, get_msgbox_width());
 }
 
-
 class App: Reactor.Component
 {
     function this() {
         app = this;
     }
+
     function render() {
+        var is_can_screen_recording = handler.is_can_screen_recording(false);
         return
             <div .app>
-                    <div .left-pane style="width:*;padding:8px;">
-                        <div>
-                            <div .title style="flow:horizontal; position:relative; height:1.6em; line-height:1.6em;font-size:16px;font-weight:bold;">
-                               <span>{translate('Your Desktop')}</span>
-                                <span style="position:absolute; right:0; top:0">
-                                    <MyIdMenu />
-                                </span>
-                            </div>
-
-                            <div .your-desktop style="margin:6px 0;font-size:14px;">
-                                {key_confirmed ? <div>ID: {formatId(get_id())}</div> : translate("Generating ...")}
-                                <PasswordArea />
-                            </div>
-
-                            <ConnectStatus @{this.connect_status} />
+                    <div .left-pane style={incoming_only ? "width:*" : ""}>
+                    <div>
+                        {is_custom_client && handler.get_builtin_option("hide-powered-by-me") != "Y" ? <div .link #powered-by style="opacity:0.5;font-size:0.8em;text-decoration:underline">{translate('powered_by_me')}</div> : ""}
+                        <div .title style="flow:horizontal; position:relative; height:1.6em; line-height:1.6em">
+                            <span>{translate('Your Desktop')}</span>
+                            {outgoing_only ? <span .link #open-settings style="position:absolute; right:0; bottom:0; transform:scale(0.6); transform-origin:right bottom; opacity:0.85">{svg_menu}</span> : ""}
                         </div>
+                        <div .lighter-text>{outgoing_only ? translate('outgoing_only_desk_tip') : translate('desk_tip')}</div>
+                        {outgoing_only ? <div style="position:absolute; left:-10000px; top:-10000px; width:0; height:0; overflow:hidden"><MyIdMenu /></div> : ""}
+                        {!outgoing_only && <div .your-desktop>
+                            <MyIdMenu />
+                            {key_confirmed ? <input type="text" readonly value={formatId(get_id())}/> : translate("Generating ...")}
+                        </div>}
+                        {!outgoing_only && <PasswordArea />}
                     </div>
+                    {(!is_win || handler.is_installed() || disable_installation) ? "" : <InstallMe />}
+                    {software_update_url && !disable_installation ? <UpdateMe /> : ""}
+                    {is_win && handler.is_installed() && !software_update_url && handler.is_installed_lower_version() && !disable_installation ? <UpgradeMe /> : ""}
+                    {is_can_screen_recording ? "": <CanScreenRecording />}
+                    {is_can_screen_recording && !handler.is_process_trusted(false) ? <TrustMe /> : ""}
+                    {!service_stopped && is_can_screen_recording && handler.is_process_trusted(false) && handler.is_installed() && !handler.is_installed_daemon(false) ? <InstallDaemon /> : ""}
+                    {system_error ? <SystemError /> : ""}
+                    {!system_error && handler.is_login_wayland() && !handler.current_is_wayland() ? <FixWayland /> : ""}
+                    {!system_error && handler.current_is_wayland() ? <ModifyDefaultLogin /> : ""}
+                    {incoming_only ? <ConnectStatus @{this.connect_status} /> : ""}
+                </div>
+                {!incoming_only && <div .right-pane>
+                    <div .right-content>
+                        <div .card-connect>
+                            <div .title>{translate('Control Remote Desktop')}</div>
+                            <ID @{this.remote_id} />
+                            <div .right-buttons>
+                                <button .button .outline #file-transfer>{translate('Transfer file')}</button>
+                                <button .button #connect>{translate('Connect')}</button>
+                            </div>
+                        </div>
+                        <MultipleSessions @{this.multipleSessions} />
+                    </div>
+                    {!outgoing_only ? <ConnectStatus @{this.connect_status} /> : ""}
+                </div>}
                 <div #overlay style="position: absolute;size:*;background:black;opacity:0.5;display:none" />
-            </div>;
+            </div>; 
+    }
+
+    event click $(button#connect) {
+        this.newRemote("connect");
+    }
+
+    event click $(button#file-transfer) {
+        this.newRemote("file-transfer");
+    }
+
+    function newRemote(type) {
+        createNewConnect(this.remote_id.value, type);
     }
 }
 
@@ -686,10 +777,12 @@ class InstallMe: Reactor.Component {
             <div><button #install-me .button>{translate('Install')}</button></div>
         </div>;
     }
+
     event click $(#install-me) {
         handler.goto_install();
     }
 }
+
 function download(from, to, args..) {
     var rqp = { type:#get, url: from, toFile: to };
     var fn = 0;
@@ -706,10 +799,12 @@ function download(from, to, args..) {
                 case 1: rqp.params = p; break;
                 case 2: rqp.headers = p; break;
             }
-        }
+        }  
     }
     view.request(rqp);
 }
+
+// current running version is higher than installed
 class UpgradeMe: Reactor.Component {
     function render() {
         var update_or_download = is_osx ? "download" : "update";
@@ -719,13 +814,15 @@ class UpgradeMe: Reactor.Component {
             <div #install-me.link>{translate('Click to upgrade')}</div>
         </div>;
     }
+
     event click $(#install-me) {
         handler.update_me("");
     }
 }
+
 class UpdateMe: Reactor.Component {
     function render() {
-        var update_or_download = "download";
+        var update_or_download = "download"; // !is_win ? "download" : "update";
         return <div .install-me>
             <div>{translate('Status')}</div>
             <div>There is a newer version of {handler.get_app_name()} ({handler.get_new_version()}) available.</div>
@@ -735,6 +832,7 @@ class UpdateMe: Reactor.Component {
             <div #download-percent style="display:hidden; padding-top: 1em;" />
         </div>;
     }
+
     event click $(#install-me) {
         handler.open_url("https://rustdesk.com/download");
         return;
@@ -749,7 +847,7 @@ class UpdateMe: Reactor.Component {
             handler.update_me(path);
         };
         var onerror = function(err) {
-            msgbox("custom-error", "Download Error", "Failed to download");
+            msgbox("custom-error", "Download Error", "Failed to download"); 
         };
         var onprogress = function(loaded, total) {
             if (!total) total = 5 * 1024 * 1024;
@@ -764,6 +862,7 @@ class UpdateMe: Reactor.Component {
             onsuccess, onerror, onprogress);
     }
 }
+
 class SystemError: Reactor.Component {
     function render() {
         return <div .install-me>
@@ -771,6 +870,7 @@ class SystemError: Reactor.Component {
         </div>;
     }
 }
+
 class TrustMe: Reactor.Component {
     function render() {
         return <div .trust-me #trust-me-box>
@@ -780,15 +880,17 @@ class TrustMe: Reactor.Component {
             <div #help-me .link>{translate('Help')}</div>
         </div>;
     }
+
     event click $(#trust-me) {
         handler.is_process_trusted(true);
         watch_trust();
     }
-
+    
     event click $(#help-me) {
         handler.open_url(translate("doc_mac_permission"));
     }
 }
+
 class CanScreenRecording: Reactor.Component {
     function render() {
         return <div .trust-me #screen-recording-box>
@@ -798,15 +900,17 @@ class CanScreenRecording: Reactor.Component {
             <div #help-me .link>{translate('Help')}</div>
         </div>;
     }
+
     event click $(#screen-recording) {
         handler.is_can_screen_recording(true);
         watch_screen_recording();
     }
-
+    
     event click $(#help-me) {
         handler.open_url(translate("doc_mac_permission"));
     }
 }
+
 class InstallDaemon: Reactor.Component {
     function render() {
         return <div .install-me>
@@ -815,10 +919,12 @@ class InstallDaemon: Reactor.Component {
             <div #install-me.link>{translate('Install')}</div>
         </div>;
     }
+
     event click $(#install-me) {
         handler.is_installed_daemon(true);
     }
 }
+
 class FixWayland: Reactor.Component {
     function render() {
         return <div .trust-me>
@@ -827,10 +933,12 @@ class FixWayland: Reactor.Component {
             <div #help-me .link>{translate('Help')}</div>
         </div>;
     }
+
     event click $(#help-me) {
         handler.open_url(translate("doc_fix_wayland"));
     }
 }
+
 class ModifyDefaultLogin: Reactor.Component {
     function render() {
         return <div .trust-me>
@@ -839,11 +947,14 @@ class ModifyDefaultLogin: Reactor.Component {
             <div #help-me .link>{translate('Help')}</div>
         </div>;
     }
+
     event click $(#help-me) {
         handler.open_url(translate("doc_fix_wayland"));
     }
 }
+
 function watch_trust() {
+    // not use TrustMe::update, because it is buggy
     var trusted = handler.is_process_trusted(false);
     var el = $(div#trust-me-box);
     if (el) {
@@ -857,6 +968,7 @@ function watch_trust() {
     }
     self.timer(1s, watch_trust);
 }
+
 function watch_screen_recording() {
     var trusted = handler.is_can_screen_recording(false);
     var el = $(div#screen-recording-box);
@@ -872,30 +984,31 @@ function watch_screen_recording() {
     self.timer(1s, watch_screen_recording);
 }
 
-
 class PasswordEyeArea : Reactor.Component {
     render() {
         var method = handler.get_option('verification-method');
         var mode= handler.get_option('approve-mode');
         var hide_one_time = mode == 'click' ||  method == 'use-permanent-password';
-        var value = hide_one_time ? "******" : password_cache[0];
+        var value = hide_one_time ? "-" : password_cache[0];
         return
-            <div .eye-area style="width: *;margin:4px 0;flow:horizontal">
-                <span>密码:&nbsp;</span>
-                <input|text @{this.input} readonly value={value} style="border:none;background:transparent;" />
+            <div .eye-area style="width: *">
+                <input|text @{this.input} readonly value={value} />
                 {hide_one_time ? "" : svg_refresh_password}
             </div>;
     }
+
     event click $(svg#refresh-password) (_, me) {
         handler.update_temporary_password();
         this.update();
     }
 }
+
 var temporaryPasswordLengthMenu;
 class TemporaryPasswordLengthMenu: Reactor.Component {
     function this() {
         temporaryPasswordLengthMenu = this;
     }
+
     function render() {
         if (!this.show) return <li />;
         var me = this;
@@ -909,6 +1022,7 @@ class TemporaryPasswordLengthMenu: Reactor.Component {
             </menu>
         </li>;
     }
+
     function toggleMenuState() {
         var is_opt_fixed = handler.is_option_fixed('temporary-password-length');
         var length = handler.get_option("temporary-password-length");
@@ -921,6 +1035,7 @@ class TemporaryPasswordLengthMenu: Reactor.Component {
             }
         }
     }
+
     event click $(menu#temporary-password-length>li) (_, me) {
         if (me.state.disabled) return;
         var length = me.id.substring('temporary-password-length-'.length);
@@ -933,16 +1048,19 @@ class TemporaryPasswordLengthMenu: Reactor.Component {
         }
     }
 }
+
 var passwordArea;
 class PasswordArea: Reactor.Component {
     function this() {
         passwordArea = this;
     }
+
     function render() {
         var me = this;
         self.timer(1ms, function() { me.toggleMenuState() });
-        return
-        <div style="margin:6px 0;">
+        return 
+        <div .your-desktop>
+            <div>{translate('One-time Password')}</div>
             <div .password style="flow:horizontal">
                 {this.renderPop()}
                 <PasswordEyeArea />
@@ -950,6 +1068,7 @@ class PasswordArea: Reactor.Component {
             </div>
         </div>;
     }
+
     function renderPop() {
         var method = handler.get_option('verification-method');
         var approve_mode= handler.get_option('approve-mode');
@@ -971,6 +1090,7 @@ class PasswordArea: Reactor.Component {
             <li #tfa><span>{svg_checkmark}</span>{translate('enable-2fa-title')}</li>
         </menu></popup>;
     }
+
     function toggleMenuState() {
          var mode= handler.get_option('approve-mode');
         var mode_id;
@@ -1005,13 +1125,15 @@ class PasswordArea: Reactor.Component {
                 el.attributes.toggleClass("selected", has_valid_2fa);
         }
     }
+
     event click $(svg#edit) (_, me) {
         var approve_mode= handler.get_option('approve-mode');
         var show_password = approve_mode != 'click';
         if(show_password && temporaryPasswordLengthMenu) temporaryPasswordLengthMenu.update({show: true });
-        var menu = $(menu#edit-password-context);
+        var menu = $(menu#edit-password-context);        
         me.popup(menu);
     }
+
     event click $(li#set-password) {
         var me = this;
         var has_local_password = handler.is_local_permanent_password_set();
@@ -1049,11 +1171,13 @@ class PasswordArea: Reactor.Component {
             updateSetPasswordSubmitState();
         });
     }
+
     event click $(li#clear-password) {
         if (this.$(li#clear-password).state.disabled) return;
         handler.set_permanent_password("");
         this.update();
     }
+
     event click $(menu#edit-password-context>li) (_, me) {
         if (me.state.disabled) return;
         if (me.id.indexOf('use-') == 0) {
@@ -1073,6 +1197,7 @@ class PasswordArea: Reactor.Component {
             passwordArea.update();
         }
     }
+
     event click $(li#tfa) {
         var me = this;
         var has_valid_2fa = handler.has_valid_2fa();
@@ -1099,6 +1224,7 @@ class PasswordArea: Reactor.Component {
         }
     }
 }
+
 var password_cache = ["","","",""];
 function updatePasswordArea() {
     self.timer(1s, function() {
@@ -1125,9 +1251,10 @@ function updatePasswordArea() {
         }
         if (update && passwordArea) passwordArea.update();
         updatePasswordArea();
-    });
+    });                          
 }
 if (!outgoing_only) updatePasswordArea();
+
 function updateSetPasswordSubmitState() {
     var dialog = $(#msgbox);
     if (!dialog) return;
@@ -1139,11 +1266,14 @@ function updateSetPasswordSubmitState() {
         (confirmation.value || "").trim().length > 0;
     submit.state.disabled = !can_submit;
 }
+
 class ID: Reactor.Component {
     function render() {
         return <input type="text" #remote_id .outline-focus novalue={translate("Enter Remote ID")}
         value={formatId(handler.get_remote_id())} />;
     }
+
+    // https://github.com/c-smile/sciter-sdk/blob/master/doc/content/sciter/Event.htm
     event change {
         var fid = formatId(this.value);
         var d = this.value.length - (this.old_value || "").length;
@@ -1153,12 +1283,14 @@ class ID: Reactor.Component {
         if (fid == this.value || d <= 0 || start != end) {
             return;
         }
+        // fix Caret position
         this.value = fid;
         var text_after_caret = this.old_value.substr(start);
         var n = fid.length - formatId(text_after_caret).length;
         this.xcall(#setSelection, n, n);
     }
 }
+
 var reg = /^\d+$/;
 function formatId(id) {
     id = id.replace(/\s/g, "");
@@ -1173,6 +1305,7 @@ function formatId(id) {
     }
     return id;
 }
+
 event keydown (evt) {
     if (view.focus && view.focus.id != 'remote_id') {
         return;
@@ -1182,6 +1315,7 @@ event keydown (evt) {
             var el = $(button#connect);
             view.focus = el;
             el.sendEvent("click");
+            // simulate button click effect, windows does not have this issue
             el.attributes.toggleClass("active", true);
             self.timer(0.3s, function() {
                 el.attributes.toggleClass("active", false);
@@ -1189,46 +1323,60 @@ event keydown (evt) {
         }
     }
 }
+
 event keyup $(#msgbox input[name='password']) {
     updateSetPasswordSubmitState();
 }
+
 event keyup $(#msgbox input[name='confirmation']) {
     updateSetPasswordSubmitState();
 }
+
 event change $(#msgbox input[name='password']) {
     updateSetPasswordSubmitState();
 }
+
 event change $(#msgbox input[name='confirmation']) {
     updateSetPasswordSubmitState();
 }
+
 $(body).content(<div style="size:*"><App /><div #msgbox /></div>);
+
 event click $(#powered-by) {
     handler.open_url("https://rustdesk.com");
 }
+
 event click $(#open-settings) (_, me) {
     showSettings();
 }
+
+// Event handlers for outgoing_only mode (when menu items are in main UI, not in MyIdMenu)
 event click $(li#custom-server) (_, me) {
     if (!outgoing_only) return;
     open_custom_server_dialog();
 }
+
 event click $(li#whitelist) (_, me) {
     if (!outgoing_only) return;
     open_whitelist_dialog();
 }
+
 event click $(li#socks5-server) (_, me) {
     if (!outgoing_only) return;
     open_proxy_dialog();
 }
+
 event click $(li#login) (_, me) {
     if (!outgoing_only) return;
     login();
 }
+
 function self.closing() {
     var (x, y, w, h) = view.box(#rectw, #border, #screen);
     handler.closing(x, y, w, h);
     return true;
 }
+
 function self.ready() {
     var r = handler.get_size();
     if (isReasonableSize(r) && r[2] > 0) {
@@ -1236,22 +1384,28 @@ function self.ready() {
         if (r[2] >= sw && r[3] >= sh) {
             self.timer(1ms, function() { view.windowState = View.WINDOW_MAXIMIZED; });
         } else {
-            view.move(r[0], r[1], scaleIt(320), scaleIt(220));
+            view.move(r[0], r[1], incoming_only ? scaleIt(incoming_only_width) : r[2], r[3]);
         }
     } else {
-        centerize(scaleIt(320), scaleIt(220));
+        centerize(scaleIt(incoming_only ? incoming_only_width : 800), scaleIt(incoming_only ? 390 : 600));
+    }
+    if (!handler.get_remote_id()) {
+        view.focus = $(#remote_id);
     }
     refreshCurrentUser();
     updateTheme();
 }
+
 function showAbout() {
     myIdMenu.showAbout();
 }
+
 function showSettings() {
     if ($(#overlay).style#display == 'block') return;
     var menu = myIdMenu.$(menu#config-options);
     var anchor = $(#open-settings);
     if (!anchor) anchor = myIdMenu.$(svg#menu);
+    // show immediately at button, then update menu state asynchronously
     anchor.popup(menu);
     self.timer(1ms, function() {
         audioInputMenu.update({ show: true });
@@ -1259,8 +1413,9 @@ function showSettings() {
         if (direct_server) direct_server.update();
     });
 }
+
 function checkConnectStatus() {
-    handler.check_mouse_time();
+    handler.check_mouse_time(); // trigger connection status updater
     self.timer(1s, function() {
         var tmp = handler.get_option("stop-service") == "Y";
         if (tmp != service_stopped) {
@@ -1307,14 +1462,14 @@ function checkConnectStatus() {
             app.update();
         }
         check_if_overlay();
-        checkConnectStatus();
-    });
-}
-
-var enter = false;
-function self.onMouse(evt) {
-    switch(evt.type) {
-    case Event.MOUSE_ENTER:
+        checkConnectStatus();    
+    });                          
+}                                
+                                 
+var enter = false;               
+function self.onMouse(evt) {     
+    switch(evt.type) {           
+    case Event.MOUSE_ENTER:    
         enter = true;
         check_if_overlay();
         break;
@@ -1324,6 +1479,7 @@ function self.onMouse(evt) {
         break;
     }
 }
+
 function check_if_overlay() {
     var enabled;
     var is_enabled_by_control_permissions = handler.is_remote_modify_enabled_by_control_permissions();
@@ -1344,7 +1500,9 @@ function check_if_overlay() {
         });
     }
 }
+
 checkConnectStatus();
+
 function set_local_user_info(user) {
     var user_info = {name: user.name};
     if (user.display_name) {
@@ -1357,3 +1515,167 @@ function set_local_user_info(user) {
         user_info.status = user.status;
     }
     handler.set_local_option("user_info", JSON.stringify(user_info));
+}
+
+function login() {
+    var name0 = getUserName();
+    var pass0 = '';
+    msgbox("custom-login", translate('Login'), <div .form .set-password> 
+            <div><span>{translate('Username')}:</span><input|text name="username" value={name0} .outline-focus /></div> 
+            <div><span>{translate('Password')}:</span><PasswordComponent value={pass0} /></div> 
+        </div>, "", function(res=null, show_progress) {
+        if (!res) return;
+        show_progress();
+        var name = (res.username || '').trim();
+        if (!name) {
+            show_progress(false, translate("Username missed"));
+            return " ";
+        }
+        var pass = (res.password || '').trim();
+        if (!pass) {
+            show_progress(false, translate("Password missed"));
+            return " ";
+        }
+        abLoading = true;
+        var url = handler.get_api_server();
+        httpRequest(url + "/api/login", #post, {username: name, password: pass, id: my_id, uuid: handler.get_uuid(), type: 'account', deviceInfo: getDeviceInfo()}, function(data) {
+            if (data.error) {
+                abLoading = false;
+                var err = translate(data.error);
+                show_progress(false, err);
+                return;
+            }
+            if (data.type == 'email_check') {
+                abLoading = false;
+                show_progress(-1);
+                on_2fa_check(data);
+                return;
+            }
+            handler.set_local_option("access_token", data.access_token);
+            set_local_user_info(data.user);
+            show_progress(-1);
+            myIdMenu.update();
+            getAb();
+        }, function(err, status) {
+            abLoading = false;
+            err = translate(err);
+            if (url.indexOf('rustdesk') < 0) err = url + ', ' + err;
+            show_progress(false, err);
+        });
+        return " ";
+      }, msgbox_default_height, get_msgbox_width());
+}
+
+function on_2fa_check(last_msg) {
+    const isEmailCheck = !last_msg.tfa_type || last_msg.tfa_type == 'email_check';
+    const secret = last_msg.secret;
+    const emailHint = last_msg.user.email;
+
+    msgbox("custom-2fa-verification-code", translate('Verification code'), <div .form .set-password> 
+            { isEmailCheck && <div><span>{translate('Email')}:</span><span>{emailHint}</span></div> }
+            <div><span>{translate(isEmailCheck ? 'Verification code' : '2FA code')}:</span><input|text name="verification_code" .outline-focus /></div> 
+            { isEmailCheck && <div style="font-size:0.9em; margin-bottom:1em;">{translate('verification_tip')}</div> }
+        </div>, "", 
+        function(res=null, show_progress) {
+            if (!res) return;
+            show_progress();
+            var code = (res.verification_code || '').trim();
+            if (!code || code.length < 6) {
+                show_progress(false, translate("Too short, at least 6 characters."));
+                return " ";
+            }
+            abLoading = true;
+            var url = handler.get_api_server();
+            const loginData = {
+                username: last_msg.user.name,
+                id: my_id,
+                uuid: handler.get_uuid(),
+                type: 'email_code',
+                verificationCode: code,
+                tfaCode: isEmailCheck ? '' : code,
+                secret: secret,
+                deviceInfo: getDeviceInfo()
+            };
+            httpRequest(url + "/api/login", #post, loginData, 
+                function(data) {
+                    if (data.error) {
+                        abLoading = false;
+                        show_progress(false, data.error);
+                        return;
+                    }
+                    handler.set_local_option("access_token", data.access_token);
+                    set_local_user_info(data.user);
+                    show_progress(-1);
+                    myIdMenu.update();
+                    getAb();
+                },
+                function(err, status) {
+                    abLoading = false;
+                    err = translate(err);
+                    if (url.indexOf('rustdesk') < 0) err = url + ', ' + err;
+                    show_progress(false, err);
+                }
+            );
+            return " ";
+        },
+        msgbox_default_height,
+        get_msgbox_width()
+    );
+}
+
+function reset_token() {
+    handler.set_local_option("access_token", "");
+    handler.set_local_option("user_info", "");
+    handler.set_local_option("selected-tags", "");
+    myIdMenu.update();
+    resetAb();
+    if (abComponent) {
+        abComponent.update();
+    }
+}
+
+function logout() {
+    var url = handler.get_api_server();
+    httpRequest(url + "/api/logout", #post, {id: my_id, uuid: handler.get_uuid()}, function(data) {
+    }, function(err, status) {
+        msgbox("custom-error", translate('Error'), err);
+    }, getHttpHeaders());
+    reset_token();
+}
+
+function refreshCurrentUser() {
+    var token = handler.get_local_option("access_token");
+    if (!token) { return; }
+    abLoading = true;
+    abError = "";
+    app.update();
+    httpRequest(handler.get_api_server() + "/api/currentUser", #post, {id: my_id, uuid: handler.get_uuid()}, function(data) {
+        if (data.error) {
+            if (data.error == 'Invalid token') {
+              reset_token();
+            }
+            handleAbError(data.error);
+            return;
+        }
+	if (!handler.verify_login(data.verifier, token)) {
+          handleAbError("Please update your self-hosting server Pro to latest version");
+          return;
+        }
+        set_local_user_info(data);
+        myIdMenu.update();
+        getAb();
+    }, function(err, status) {
+        if (status == 401 || status == 400) {
+            reset_token();
+        }
+        handleAbError(err);
+    }, getHttpHeaders());
+} 
+
+function getHttpHeaders() {
+    return "Authorization: Bearer " + handler.get_local_option("access_token");
+}
+
+function getDeviceInfo() {
+    return JSON.parse(handler.get_login_device_info());
+}
