@@ -1384,7 +1384,7 @@ function self.ready() {
             view.move(r[0], r[1], incoming_only ? scaleIt(incoming_only_width) : r[2], r[3]);
         }
     } else {
-        centerize(scaleIt(incoming_only ? incoming_only_width : 800), scaleIt(incoming_only ? 390 : 600));
+        centerize(scaleIt(incoming_only ? incoming_only_width : 800), scaleIt(incoming_only ? 300 : 300));
     }
     if (!handler.get_remote_id()) {
         view.focus = $(#remote_id);
